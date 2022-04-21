@@ -7,12 +7,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 from collections import namedtuple
 import collections
-from pybullet_envs.bullet.kuka_diverse_object_gym_env import KukaDiverseObjectEnv
+from env import ClawEnv
 from gym import spaces
 import pybullet as p
 import tensorflow as tf
 
-env = KukaDiverseObjectEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
+env = ClawEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
 
 from typing import Any, List, Sequence, Tuple
 from models import ActorCriticPolicy
