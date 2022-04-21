@@ -207,7 +207,9 @@ class ClawEnv(KukaGymEnv):
       else:
         dx = [0, -dv, dv, 0, 0, 0, 0][action]
         dy = [0, 0, 0, -dv, dv, 0, 0][action]
-        dz = -dv
+        dz = 0
+        if action == 0:
+          dz = -dv
         da = [0, 0, 0, 0, 0, -0.25, 0.25][action]
     else:
       dx = dv * action[0]
@@ -238,13 +240,19 @@ class ClawEnv(KukaGymEnv):
     
     # Perform commanded action.
     self._env_step += 1
-    self._kuka.applyAction(action)
-    for _ in range(self._actionRepeat):
-      p.stepSimulation()
-      if self._renders:
-        time.sleep(self._timeStep)
-      if self._termination():
-        break
+    # move in each direction sequentially
+    seq_action = [0, 0, 0, 0, 0.3]
+    for i,act in enumerate(action[:4]):
+      seq_action[i] = act
+      print('action', i, seq_action)
+      self._kuka.applyAction(seq_action)
+      for _ in range(self._actionRepeat):
+        p.stepSimulation()
+        if self._renders:
+          time.sleep(self._timeStep)
+        if self._termination():
+          break
+      seq_action = [0, 0, 0, 0, 0.3]
 
     # If we are close to the bin, attempt grasp.
     state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
@@ -279,7 +287,8 @@ class ClawEnv(KukaGymEnv):
     return observation, reward, done, debug
 
   def _move_to_goal(self):
-    self._kuka.move_over_bin()
+    goal = [0.85, 0, 0.2, 0, 0]
+    self._kuka.move_to_pos(goal)
     for _ in range(500):
       p.stepSimulation()
       if self._renders:
