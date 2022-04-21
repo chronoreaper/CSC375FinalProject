@@ -4,7 +4,7 @@ import os
 from gym import spaces
 import time
 import pybullet as p
-import kuka
+import kukaclaw
 
 v.move_outside_bin()
 import numpy as np
@@ -138,7 +138,7 @@ class ClawEnv(KukaGymEnv):
 
     p.setGravity(0, 0, -10)
 
-    self._kuka = kuka.Kuka(urdfRootPath=self._urdfRoot, timeStep=self._timeStep)
+    self._kuka = kukaclaw.Kuka(urdfRootPath=self._urdfRoot, timeStep=self._timeStep)
     self._envStepCounter = 0
     p.stepSimulation()
 

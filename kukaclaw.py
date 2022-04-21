@@ -19,9 +19,9 @@ class Kuka:
     self.timeStep = timeStep
     self.maxVelocity = .35
     self.maxForce = 200.
-    self.fingerAForce = 2
-    self.fingerBForce = 2.5
-    self.fingerTipForce = 2
+    self.fingerAForce = 1#2
+    self.fingerBForce = 1#2.5
+    self.fingerTipForce = 1#2
     self.useInverseKinematics = 1
     self.useSimulation = 1
     self.useNullSpace = 21
@@ -279,18 +279,14 @@ class Kuka:
   def activate(self, blocking=True):
         """Close gripper fingers and check if the width between fingers exceeds some threshold to determine successful grasp."""
         open_angle = 0.715 - math.asin((self.gripper_range[1] - 0.010) / 0.1143)
-        p.setJointMotorControl2(self.body_id, self.kukaEndEffectorIndex, p.POSITION_CONTROL, targetPosition=open_angle, force=1000)
+        p.setJointMotorControl2(self.kukaUid, self.kukaEndEffectorIndex, p.POSITION_CONTROL, targetPosition=open_angle, force=1000)
         grasp_success = None
-        if blocking:
-            time.sleep(1)
-            grasp_success = p.getJointState(self.body_id, 1)[0] < 0.834 - 0.001
+        grasp_success = p.getJointState(self.kukaUid, 1)[0] < 0.834 - 0.001
         return grasp_success
 
   def release(self, blocking=True):
       """Open gripper fingers."""
-      p.setJointMotorControl2(self.body_id, self.kukaEndEffectorIndex, p.VELOCITY_CONTROL, targetVelocity=-1, force=1000)
-      if blocking:
-          time.sleep(1)
+      p.setJointMotorControl2(self.kukaUid, self.kukaEndEffectorIndex, p.VELOCITY_CONTROL, targetVelocity=-1, force=1000)
 
   def move_over_bin(self):
     """Move robot arm over the bin."""

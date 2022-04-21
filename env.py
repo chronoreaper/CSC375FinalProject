@@ -4,7 +4,7 @@ import os
 from gym import spaces
 import time
 import pybullet as p
-import kuka
+import kukaclaw
 import numpy as np
 import pybullet_data
 import pdb
@@ -33,7 +33,7 @@ class ClawEnv(KukaGymEnv):
                cameraRandom=0,
                width=48,
                height=48,
-               numObjects=5,
+               numObjects=1,
                isTest=False):
     """Initializes the ClawEnv.
 
@@ -136,7 +136,7 @@ class ClawEnv(KukaGymEnv):
 
     p.setGravity(0, 0, -10)
 
-    self._kuka = kuka.Kuka(urdfRootPath=self._urdfRoot, timeStep=self._timeStep)
+    self._kuka = kukaclaw.Kuka(urdfRootPath=self._urdfRoot, timeStep=self._timeStep)
     self._envStepCounter = 0
     p.stepSimulation()
 
@@ -270,12 +270,22 @@ class ClawEnv(KukaGymEnv):
         if finger_angle < 0:
           finger_angle = 0
       self._attempted_grasp = True
+      self._move_to_goal()
     observation = self._get_observation()
     done = self._termination()
     reward = self._reward(block_pos)
 
     debug = {'grasp_success': self._graspSuccess}
     return observation, reward, done, debug
+
+  def _move_to_goal(self):
+    self._kuka.move_over_bin()
+    for _ in range(500):
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+    print("Went to Goal!")
+
 
   def _get_object_position(self):
     """
@@ -312,10 +322,17 @@ class ClawEnv(KukaGymEnv):
     return reward
 
   def _termination(self):
-    """Terminates the episode if we have tried to grasp or if we are above
-    maxSteps steps.
-    """
-    return self._attempted_grasp or self._env_step >= self._maxSteps
+      """Terminates the episode if the block is in the tray or if we are above
+      maxSteps steps.
+      """
+      in_goal = []
+      for uid in self._objectUids:
+        block_pos = self._get_object_position()[uid]
+        in_goal.append(0.8 <= block_pos[0] <= 0.9 and 
+                      -0.2 <= block_pos[1] <= 0.15 and 
+                              block_pos[2] <= -0.1)
+      return any(in_goal) or self._env_step >= self._maxSteps
+
 
   def _get_random_object(self, num_objects, test):
     """Randomly choose an object urdf from the random_urdfs directory.
