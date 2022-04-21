@@ -5,8 +5,7 @@ from gym import spaces
 import time
 import pybullet as p
 import kuka
-from kuka import Kuka
-v = Kuka
+
 v.move_outside_bin()
 import numpy as np
 import pybullet_data
@@ -240,7 +239,19 @@ class ClawEnv(KukaGymEnv):
     block_pos = self._get_object_position()
     
     self._kuka.move_over_bin()
+    for _ in range(self._actionRepeat):
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+      if self._termination():
+        break
     self._kuka.move_outside_bin()
+    for _ in range(self._actionRepeat):
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+      if self._termination():
+        break
 
     # Perform commanded action.
     self._env_step += 1

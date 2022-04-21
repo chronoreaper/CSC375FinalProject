@@ -222,31 +222,58 @@ class Kuka:
       '''
       target_joints is size [num_joints]
       '''
-
-      p.setJointMotorControlArray(self.kukaUid, 
-                                  self.numJoints, 
-                                  p.POSITION_CONTROL, 
-                                  targetPositions=target_joints, 
-                                  positionGains=[velocity] * len(target_joints))
-      
-      for j in range(10):
-          time.sleep(1)
-          cur_vel = []
-          for i in self.numJoints:
-              cur_vel.append(p.getJointState(self.kukaUid, i)[1])
-          if (max(cur_vel) < 0.001):
-              break
+      for i in range(self.kukaEndEffectorIndex + 1):
+        #print(i)
+        p.setJointMotorControl2(bodyUniqueId=self.kukaUid,
+                                jointIndex=i,
+                                controlMode=p.POSITION_CONTROL,
+                                targetPosition=target_joints[i],
+                                targetVelocity=0,
+                                force=self.maxForce,
+                                maxVelocity=self.maxVelocity,
+                                positionGain=0.3,
+                                velocityGain=1)
+      # p.setJointMotorControlArray(self.kukaUid, 
+      #                             self.numJoints, 
+      #                             p.POSITION_CONTROL, 
+      #                             targetPositions=target_joints, 
+      #                             positionGains=[velocity] * len(target_joints))
 
   def move_pose(self, target_pose, blocking=False, velocity=0.03):
       """Move to a target pose with a given velocity. Option to do so in blocking or non-blocking mode."""
       '''
       target_pose is a matrix [[x,y,z],r], r is rotation
       '''    
-      blockPos = p.getEulerFromQuaternion(target_pose[1])
-      # Set the claw to down and the orintation to be the same
-      clawPos = p.getQuaternionFromEuler([np.pi, 0, blockPos[2]])
+      # blockPos = p.getEulerFromQuaternion(target_pose[1])
+      # # Set the claw to down and the orintation to be the same
+      # clawPos = p.getQuaternionFromEuler([np.pi, 0, blockPos[2]])
 
-      jointPoses = p.calculateInverseKinematics(self.kukaUid, self.kukaEndEffectorIndex, targetPosition=target_pose[0], targetOrientation=clawPos)
+      # jointPoses = p.calculateInverseKinematics(self.kukaUid, self.kukaEndEffectorIndex, targetPosition=target_pose[0], targetOrientation=clawPos)
+
+      pos = self.endEffectorPos
+      orn = p.getQuaternionFromEuler([0, -math.pi, 0])  # -math.pi,yaw])
+      if (self.useNullSpace == 1):
+        if (self.useOrientation == 1):
+          jointPoses = p.calculateInverseKinematics(self.kukaUid, self.kukaEndEffectorIndex, pos,
+                                                    orn, self.ll, self.ul, self.jr, self.rp)
+        else:
+          jointPoses = p.calculateInverseKinematics(self.kukaUid,
+                                                    self.kukaEndEffectorIndex,
+                                                    pos,
+                                                    lowerLimits=self.ll,
+                                                    upperLimits=self.ul,
+                                                    jointRanges=self.jr,
+                                                    restPoses=self.rp)
+      else:
+        if (self.useOrientation == 1):
+          jointPoses = p.calculateInverseKinematics(self.kukaUid,
+                                                    self.kukaEndEffectorIndex,
+                                                    pos,
+                                                    orn,
+                                                    jointDamping=self.jd)
+        else:
+          jointPoses = p.calculateInverseKinematics(self.kukaUid, self.kukaEndEffectorIndex, pos)
+
       self.move_joints(jointPoses, blocking, velocity=0.01)
 
   def activate(self, blocking=True):
