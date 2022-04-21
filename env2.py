@@ -6,7 +6,6 @@ import time
 import pybullet as p
 import kukaclaw
 
-v.move_outside_bin()
 import numpy as np
 import pybullet_data
 import pdb
@@ -238,55 +237,92 @@ class ClawEnv(KukaGymEnv):
     # Get the current block's position
     block_pos = self._get_object_position()
     
-    self._kuka.move_over_bin()
-    for _ in range(self._actionRepeat):
-      p.stepSimulation()
-      if self._renders:
-        time.sleep(self._timeStep)
-      if self._termination():
-        break
-    self._kuka.move_outside_bin()
-    for _ in range(self._actionRepeat):
-      p.stepSimulation()
-      if self._renders:
-        time.sleep(self._timeStep)
-      if self._termination():
-        break
 
-    # Perform commanded action.
-    self._env_step += 1
-    self._kuka.applyAction(action)
-    for _ in range(self._actionRepeat):
+    finger_angle = 1
+    for _ in range(500):
+      grasp_action = [1, 0, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
       p.stepSimulation()
       if self._renders:
         time.sleep(self._timeStep)
-      if self._termination():
-        break
+    
+    finger_angle = 0
+    for _ in range(500):
+      grasp_action = [0.5, 0, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
 
-    # If we are close to the bin, attempt grasp.
-    state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
-    end_effector_pos = state[0]
-    if end_effector_pos[2] <= 0.1:
-      finger_angle = 0.3
-      for _ in range(500):
-        grasp_action = [0, 0, 0, 0, finger_angle]
-        self._kuka.applyAction(grasp_action)
-        p.stepSimulation()
-        #if self._renders:
-        #  time.sleep(self._timeStep)
-        finger_angle -= 0.3 / 100.
-        if finger_angle < 0:
-          finger_angle = 0
-      for _ in range(500):
-        grasp_action = [0, 0, 0.001, 0, finger_angle]
-        self._kuka.applyAction(grasp_action)
-        p.stepSimulation()
-        if self._renders:
-          time.sleep(self._timeStep)
-        finger_angle -= 0.3 / 100.
-        if finger_angle < 0:
-          finger_angle = 0
-      self._attempted_grasp = True
+    for _ in range(500):
+      grasp_action = [1, 1, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+    for _ in range(500):
+      grasp_action = [1, -1, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+    for _ in range(500):
+      grasp_action = [-1, 1, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+    for _ in range(500):
+      grasp_action = [-1, -1, 0.2, 0, finger_angle]
+      self._kuka.move_to_pos(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+
+    # for _ in range(500):
+    #   grasp_action = [0, 0, 0.001, 0, finger_angle]
+    #   self._kuka.applyAction(grasp_action)
+    #   p.stepSimulation()
+    #   if self._renders:
+    #     time.sleep(self._timeStep)
+    #   finger_angle -= 0.3 / 100.
+    #   if finger_angle < 0:
+    #     finger_angle = 0
+
+    # # Perform commanded action.
+    # self._env_step += 1
+    # self._kuka.applyAction(action)
+    # for _ in range(self._actionRepeat):
+    #   p.stepSimulation()
+    #   if self._renders:
+    #     time.sleep(self._timeStep)
+    #   if self._termination():
+    #     break
+
+    # # If we are close to the bin, attempt grasp.
+    # state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
+    # end_effector_pos = state[0]
+    # if end_effector_pos[2] <= 0.1:
+    #   finger_angle = 0.3
+    #   for _ in range(500):
+    #     grasp_action = [0, 0, 0, 0, finger_angle]
+    #     self._kuka.applyAction(grasp_action)
+    #     p.stepSimulation()
+    #     #if self._renders:
+    #     #  time.sleep(self._timeStep)
+    #     finger_angle -= 0.3 / 100.
+    #     if finger_angle < 0:
+    #       finger_angle = 0
+    #   for _ in range(500):
+    #     grasp_action = [0, 0, 0.001, 0, finger_angle]
+    #     self._kuka.applyAction(grasp_action)
+    #     p.stepSimulation()
+    #     if self._renders:
+    #       time.sleep(self._timeStep)
+    #     finger_angle -= 0.3 / 100.
+    #     if finger_angle < 0:
+    #       finger_angle = 0
+    #   self._attempted_grasp = True
     observation = self._get_observation()
     done = self._termination()
     reward = self._reward(block_pos)
