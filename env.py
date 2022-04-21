@@ -233,6 +233,9 @@ class ClawEnv(KukaGymEnv):
       done: Bool of whether or not the episode has ended.
       debug: Dictionary of extra information provided by environment.
     """
+    # Get the current block's position
+    block_pos = self._get_object_position()
+    
     # Perform commanded action.
     self._env_step += 1
     self._kuka.applyAction(action)
@@ -269,26 +272,44 @@ class ClawEnv(KukaGymEnv):
       self._attempted_grasp = True
     observation = self._get_observation()
     done = self._termination()
-    reward = self._reward()
+    reward = self._reward(block_pos)
 
     debug = {'grasp_success': self._graspSuccess}
     return observation, reward, done, debug
 
-  def _reward(self):
+  def _get_object_position(self):
+    """
+    Returns all the block's position in the form of a dictionary
+    """
+    dict = {}
+    for uid in self._objectUids:
+      pos, _ = p.getBasePositionAndOrientation(uid)
+      dict.append(uid, pos)
+    return dict
+
+  def _reward(self, pre_pos):
     """Calculates the reward for the episode.
 
     The reward is 1 if one of the objects is above height .2 at the end of the
     episode.
     """
     reward = 0
+    furthest_block = 0
     self._graspSuccess = 0
     for uid in self._objectUids:
       pos, _ = p.getBasePositionAndOrientation(uid)
-      # If any block is above height, provide reward.
-      if pos[2] > 0.2:
+      # If any block is in the hole, provide reward.
+      if pos[0] > 0.8 and pos[0] < 0.9 and pos[2] < 0.2: # If the object is in the wedge
         self._graspSuccess += 1
         reward = 1
         break
+      elif pos[0] - pre_pos[uid] > furthest_block: # save the block that moved the furthest
+        furthest_block = pos[0] - pre_pos[uid]
+
+      if self._graspSuccess == 0:
+        reward = furthest_block # Reward the robot slightly
+
+    print("----")
     return reward
 
   def _termination(self):
