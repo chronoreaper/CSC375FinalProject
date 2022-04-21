@@ -133,8 +133,6 @@ class ClawEnv(KukaGymEnv):
 
     p.loadURDF(os.path.join(self._urdfRoot, "table/table.urdf"), 0.5000000, 0.00000, -.820000,
                0.000000, 0.000000, 0.0, 1.0)
-    #p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    #p.loadURDF("tray/traybox.urdf", [0.45, 0.3, 0], globalScaling=0.7)
 
     p.setGravity(0, 0, -10)
 
