@@ -284,7 +284,7 @@ class ClawEnv(KukaGymEnv):
     dict = {}
     for uid in self._objectUids:
       pos, _ = p.getBasePositionAndOrientation(uid)
-      dict.append(uid, pos)
+      dict[uid] = pos
     return dict
 
   def _reward(self, pre_pos):
@@ -303,13 +303,12 @@ class ClawEnv(KukaGymEnv):
         self._graspSuccess += 1
         reward = 1
         break
-      elif pos[0] - pre_pos[uid] > furthest_block: # save the block that moved the furthest
-        furthest_block = pos[0] - pre_pos[uid]
+      elif pos[0] - pre_pos[uid][0] > furthest_block: # save the block that moved the furthest
+        furthest_block = pos[0] - pre_pos[uid][0]
 
       if self._graspSuccess == 0:
         reward = furthest_block # Reward the robot slightly
 
-    print("----")
     return reward
 
   def _termination(self):

@@ -52,7 +52,7 @@ def main(argv):
         episode_reward = 0
         log_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
         values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-        rewards = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
+        rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
 
         with tf.GradientTape() as tape:
             for j in tf.range(steps):
