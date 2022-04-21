@@ -8,11 +8,13 @@ import numpy as np
 import copy
 import math
 import pybullet_data
+import time
 
 
 class Kuka:
 
   def __init__(self, urdfRootPath=pybullet_data.getDataPath(), timeStep=0.01):
+    print("hello")
     self.urdfRootPath = urdfRootPath
     self.timeStep = timeStep
     self.maxVelocity = .35
@@ -214,3 +216,64 @@ class Kuka:
                                 p.POSITION_CONTROL,
                                 targetPosition=motorCommands[action],
                                 force=self.maxForce)
+
+  def move_joints(self, target_joints, blocking=False, velocity=0.03):
+      """Move to a target joints configuration with a given velocity. Option to do so in blocking or non-blocking mode."""
+      '''
+      target_joints is size [num_joints]
+      '''
+
+      p.setJointMotorControlArray(self.kukaUid, 
+                                  self.numJoints, 
+                                  p.POSITION_CONTROL, 
+                                  targetPositions=target_joints, 
+                                  positionGains=[velocity] * len(target_joints))
+      
+      for j in range(10):
+          time.sleep(1)
+          cur_vel = []
+          for i in self.numJoints:
+              cur_vel.append(p.getJointState(self.kukaUid, i)[1])
+          if (max(cur_vel) < 0.001):
+              break
+
+  def move_pose(self, target_pose, blocking=False, velocity=0.03):
+      """Move to a target pose with a given velocity. Option to do so in blocking or non-blocking mode."""
+      '''
+      target_pose is a matrix [[x,y,z],r], r is rotation
+      '''    
+      blockPos = p.getEulerFromQuaternion(target_pose[1])
+      # Set the claw to down and the orintation to be the same
+      clawPos = p.getQuaternionFromEuler([np.pi, 0, blockPos[2]])
+
+      jointPoses = p.calculateInverseKinematics(self.kukaUid, self.kukaEndEffectorIndex, targetPosition=target_pose[0], targetOrientation=clawPos)
+      self.move_joints(jointPoses, blocking, velocity=0.01)
+
+  def activate(self, blocking=True):
+        """Close gripper fingers and check if the width between fingers exceeds some threshold to determine successful grasp."""
+        open_angle = 0.715 - math.asin((self.gripper_range[1] - 0.010) / 0.1143)
+        p.setJointMotorControl2(self.body_id, self.kukaEndEffectorIndex, p.POSITION_CONTROL, targetPosition=open_angle, force=1000)
+        grasp_success = None
+        if blocking:
+            time.sleep(1)
+            grasp_success = p.getJointState(self.body_id, 1)[0] < 0.834 - 0.001
+        return grasp_success
+
+  def release(self, blocking=True):
+      """Open gripper fingers."""
+      p.setJointMotorControl2(self.body_id, self.kukaEndEffectorIndex, p.VELOCITY_CONTROL, targetVelocity=-1, force=1000)
+      if blocking:
+          time.sleep(1)
+
+  def move_over_bin(self):
+    """Move robot arm over the bin."""
+    # Bin is at 0.85, 0.0, 0
+    clawPos = p.getQuaternionFromEuler([np.pi, 0, 0])
+    self.move_pose([[0.85, 0, 0], clawPos], True)
+    self.release(True)
+
+  def move_outside_bin(self):
+      """Move robot arm away from the bin."""
+      clawPos = p.getQuaternionFromEuler([np.pi, 0, 0])
+      self.move_pose([[0.4, 0, 0], clawPos], True)
+      self.release(True)
