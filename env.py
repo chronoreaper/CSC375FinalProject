@@ -198,7 +198,7 @@ class ClawEnv(KukaGymEnv):
     dv = self._dv  # velocity per physics step.
     if self._isDiscrete:
       # Static type assertion for integers.
-      assert isinstance(action, int)
+      action = int(action)
       if self._removeHeightHack:
         dx = [0, -dv, dv, 0, 0, 0, 0, 0, 0][action]
         dy = [0, 0, 0, -dv, dv, 0, 0, 0, 0][action]
