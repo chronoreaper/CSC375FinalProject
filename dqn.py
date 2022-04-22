@@ -9,7 +9,6 @@ from stable_baselines3.common.monitor import Monitor
 import os
 import matplotlib.pyplot as plt 
 from stable_baselines3.common import results_plotter
-from stable_baselines3.common.results_plotter import load_results, ts2xy
 
 
 
@@ -31,7 +30,7 @@ def plot_results(log_folder, title='Learning Curve'):
     :param log_folder: (str) the save location of the results to plot
     :param title: (str) the title of the task to plot
     """
-    x, y = ts2xy(load_results(log_folder), 'timesteps')
+    x, y = results_plotter.ts2xy(results_plotter.load_results(log_folder), 'timesteps')
     y = moving_average(y, window=50)
     # Truncate x
     x = x[len(x) - len(y):]
@@ -41,6 +40,7 @@ def plot_results(log_folder, title='Learning Curve'):
     plt.xlabel('Number of Timesteps')
     plt.ylabel('Rewards')
     plt.title(title + " Smoothed")
+    plt.savefig('fig_dqn.png')
     plt.show()
 
 
@@ -54,27 +54,27 @@ model = DQN("MlpPolicy", env, verbose=1, buffer_size=10000)
 model.action_space = env.action_space
 model.learn(total_timesteps=1000, log_interval=10)
 
-
 # Helper from the library
+results_plotter.plot_results(["./log"], 1000, results_plotter.X_TIMESTEPS, "DQN Rewards")
 plot_results(log_dir)
 
-# rewards = []
+rewards = []
 
 
-# obs = env.reset()
-# for _ in range(10):
-#     action, _states = model.predict(obs, deterministic=True)
-#     obs, reward, done, info = env.step(action)
-#     rewards.append(reward)
-#     env.render()
-#     if done:
-#       obs = env.reset()
+obs = env.reset()
+for _ in range(10):
+    action, _states = model.predict(obs, deterministic=True)
+    obs, reward, done, info = env.step(action)
+    rewards.append(reward)
+    env.render()
+    if done:
+      obs = env.reset()
 
-# plt.plot(rewards)
-# plt.title('Rewards')
-# plt.xlabel('Episode')
-# plt.show()
-# plt.savefig('fig.png')
+plt.plot(rewards)
+plt.title('Rewards')
+plt.xlabel('Episode')
+plt.show()
+plt.savefig('fig_dqn1.png')
   
   
 
