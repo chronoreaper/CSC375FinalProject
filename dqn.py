@@ -1,5 +1,7 @@
 import gym
 from env import ClawEnv
+from absl import app
+import matplotlib.pyplot as plt
 from stable_baselines3 import DQN
 from stable_baselines3.common.monitor import Monitor
 import os
@@ -27,3 +29,6 @@ plt.title('Rewards')
 plt.xlabel('Episode')
 plt.show()
 plt.savefig('fig.png')
+  
+  
+
