@@ -254,30 +254,24 @@ class ClawEnv(KukaGymEnv):
       self._move_to_position(position)
       self._grasp()
       print('Going to goal')
-      self._move_to_goal()
-      self._release()
-      self._move_to_position([0, 0, 0.25, 0, action[4]])
+      goal = [1, 0, 0.25, 0, 0]
+      self._move_to_position(goal)
+      goal[4] = 0.3
+      print('Release')
+      self._move_to_position(goal)
+      home = [0, 0, 0.25, 0, action[4]]
+      print('Going home')
+      self._move_to_position(home)
 
     observation = self._get_observation()
     done = self._termination()
     reward = self._reward(block_pos)
+    print(f'reward: {reward}') 
+    print(f'done: {done}') 
 
     debug = {'grasp_success': self._graspSuccess}
     return observation, reward, done, debug
 
-  def _release(self):
-    print('Release start')
-    finger_angle = 0
-    for _ in range(200):
-      grasp_action = [0, 0, 0, 0, finger_angle]
-      print(f'Release: {grasp_action}')
-      self._kuka.applyAction(grasp_action)
-      p.stepSimulation()
-      if self._renders:
-        time.sleep(self._timeStep)
-      finger_angle += 0.1 / 100.
-      if finger_angle > 0.3:
-        finger_angle = 0.3
 
   def _grasp(self):
     print('Grasp start')
@@ -311,8 +305,6 @@ class ClawEnv(KukaGymEnv):
         p.stepSimulation()
         if self._renders:
           time.sleep(self._timeStep)
-        # if self._termination():
-        #   break
 
   def _move_to_position(self, pos):
     """ Moves the Kuka arm to a position
@@ -322,16 +314,10 @@ class ClawEnv(KukaGymEnv):
     print(f'Moving to {[round(i, 2) for i in pos]}')
     pos = self._kuka.clamp_positions(pos)
     self._kuka.move_to_pos(pos)
-    for _ in range(500):
+    for _ in range(200):
       p.stepSimulation()
       if self._renders:
         time.sleep(self._timeStep)
-
-  def _move_to_goal(self):
-    goal = [1, 0, 0.25, 0, 0]
-    self._move_to_position(goal)
-    time.sleep(0.5)
-    print("Went to Goal!")
 
 
   def _get_object_position(self):
@@ -356,7 +342,7 @@ class ClawEnv(KukaGymEnv):
     for uid in self._objectUids:
       pos, _ = p.getBasePositionAndOrientation(uid)
       # If any block is in the hole, provide reward.
-      if pos[0] > 0.8 and pos[0] < 0.9 and pos[2] < 0.2: # If the object is in the wedge
+      if pos[0] > 1 and pos[0] < 1.2 and pos[2] < 0.1: # If the object is in the wedge
         self._graspSuccess += 1
         reward = 1
         break
@@ -375,9 +361,8 @@ class ClawEnv(KukaGymEnv):
       in_goal = []
       for uid in self._objectUids:
         block_pos = self._get_object_position()[uid]
-        in_goal.append(0.85 <= block_pos[0] <= 0.9 and 
-                      -0.2 <= block_pos[1] <= 0.15 and 
-                              block_pos[2] <= -0.1)
+        in_goal.append(1 <= block_pos[0] <= 1.2 and 
+                              block_pos[2] <= 0.1)
       terimination = any(in_goal) or self._env_step >= self._maxSteps
       return terimination
 
