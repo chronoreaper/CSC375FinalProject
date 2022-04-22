@@ -253,28 +253,21 @@ class ClawEnv(KukaGymEnv):
       position = [end_effector_pos[0], end_effector_pos[1], 0.1, 0, action[4]]
       self._move_to_position(position)
       self._grasp()
-      print('Going to goal')
       goal = [1, 0, 0.25, 0, 0]
       self._move_to_position(goal)
       goal[4] = 0.3
-      print('Release')
       self._move_to_position(goal)
       home = [0, 0, 0.25, 0, action[4]]
-      print('Going home')
       self._move_to_position(home)
 
     observation = self._get_observation()
     done = self._termination()
     reward = self._reward(block_pos)
-    print(f'reward: {reward}') 
-    print(f'done: {done}') 
-
     debug = {'grasp_success': self._graspSuccess}
     return observation, reward, done, debug
 
 
   def _grasp(self):
-    print('Grasp start')
     finger_angle = 0.3
     for _ in range(100):
       grasp_action = [0, 0, 0, 0, finger_angle]
@@ -285,7 +278,6 @@ class ClawEnv(KukaGymEnv):
       finger_angle -= 0.3 / 100.
       if finger_angle < 0:
         finger_angle = 0
-    print('Grasp 2 start')
     for _ in range(100):
       grasp_action = [0, 0, 0.002, 0, finger_angle]
       self._kuka.applyAction(grasp_action)
@@ -299,7 +291,6 @@ class ClawEnv(KukaGymEnv):
 
   def _apply_action(self, action):
     if any([i != 0 for i in action[:4]]): # only take action when there is some non-zero command
-      print(f'Applying action: {action}')
       self._kuka.applyAction(action)
       for _ in range(self._actionRepeat):
         p.stepSimulation()
@@ -311,7 +302,6 @@ class ClawEnv(KukaGymEnv):
     Args: position, (x,y,z,a,r) coordinates, a is the end defector angle, r is the claw angle
 
     """
-    print(f'Moving to {[round(i, 2) for i in pos]}')
     pos = self._kuka.clamp_positions(pos)
     self._kuka.move_to_pos(pos)
     for _ in range(200):
@@ -349,8 +339,8 @@ class ClawEnv(KukaGymEnv):
       elif pos[0] - pre_pos[uid][0] > furthest_block: # save the block that moved the furthest
         furthest_block = pos[0] - pre_pos[uid][0]
 
-      if self._graspSuccess == 0:
-        reward = furthest_block # Reward the robot slightly
+      if self._graspSuccess == 0 and furthest_block > 0:
+        reward = 0.5 # Reward the robot for moving the block
 
     return reward
 

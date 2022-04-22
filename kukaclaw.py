@@ -14,7 +14,6 @@ import time
 class Kuka:
 
   def __init__(self, urdfRootPath=pybullet_data.getDataPath(), timeStep=0.01):
-    print("hello")
     self.urdfRootPath = urdfRootPath
     self.timeStep = timeStep
     self.maxVelocity = .35

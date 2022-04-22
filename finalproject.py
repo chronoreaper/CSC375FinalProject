@@ -12,7 +12,7 @@ from gym import spaces
 import pybullet as p
 import tensorflow as tf
 
-env = ClawEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
+env = ClawEnv(renders=False, isDiscrete=True, removeHeightHack=False, maxSteps=20)
 
 from typing import Any, List, Sequence, Tuple
 from models import ActorCriticPolicy
@@ -33,6 +33,11 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
+def plot_rewards(running_rewards):
+    plt.plot(running_rewards)
+    plt.draw()
+    plt.pause(0.01)
+    pass
 
 def normalize(state):
     state = state / 255.
@@ -45,6 +50,7 @@ def main(argv):
     opt = tf.keras.optimizers.Adam(learning_rate=0.01)
 
     episodes_reward = []
+    running_rewards = []
 
     for i in tf.range(max_episodes):
         done = False
@@ -62,13 +68,13 @@ def main(argv):
                 values = values.write(j, tf.squeeze(value))
 
                 next_state, reward, done, _ = env.step(action)
+
                 rewards = rewards.write(j, reward)
 
                 if done:
                     break
 
                 state = next_state
-
             log_probs = log_probs.stack()
             values = values.stack()
             rewards = rewards.stack()
@@ -83,9 +89,12 @@ def main(argv):
 
         episodes_reward.append(float(episode_reward))
         running_reward = tf.math.reduce_mean(episodes_reward)
+        running_rewards.append(running_reward)
 
         if i % 10 == 0:
             tf.print('total reward after {} episodes is {}'.format(i, running_reward))
+
+        plot_rewards(running_rewards)
 
 if __name__ == '__main__':
   app.run(main)
