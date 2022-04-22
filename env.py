@@ -235,6 +235,7 @@ class ClawEnv(KukaGymEnv):
     """
     # Get the current block's position
     block_pos = self._get_object_position()
+    blocks = [block_pos[k] for k in block_pos.keys()]
     
     
     self._env_step += 1
@@ -249,13 +250,13 @@ class ClawEnv(KukaGymEnv):
       state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
       end_effector_pos = state[0]
       # if end_effector_pos[2] <= 0.1:
-      position = [end_effector_pos[0], end_effector_pos[1], 0.2, 0, action[4]]
+      position = [end_effector_pos[0], end_effector_pos[1], 0.1, 0, action[4]]
       self._move_to_position(position)
       self._grasp()
       print('Going to goal')
       self._move_to_goal()
       self._release()
-      self._move_to_position([0, 0, 0.2, 0, action[4]])
+      self._move_to_position([0, 0, 0.25, 0, action[4]])
 
     observation = self._get_observation()
     done = self._termination()
@@ -267,13 +268,14 @@ class ClawEnv(KukaGymEnv):
   def _release(self):
     print('Release start')
     finger_angle = 0
-    for _ in range(100):
+    for _ in range(200):
       grasp_action = [0, 0, 0, 0, finger_angle]
+      print(f'Release: {grasp_action}')
       self._kuka.applyAction(grasp_action)
       p.stepSimulation()
       if self._renders:
         time.sleep(self._timeStep)
-      finger_angle += 0.3 / 100.
+      finger_angle += 0.1 / 100.
       if finger_angle > 0.3:
         finger_angle = 0.3
 
@@ -321,17 +323,14 @@ class ClawEnv(KukaGymEnv):
     pos = self._kuka.clamp_positions(pos)
     self._kuka.move_to_pos(pos)
     for _ in range(500):
-      # self._kuka.applyAction(self._calculate_force(pos))
       p.stepSimulation()
       if self._renders:
         time.sleep(self._timeStep)
-      end_effector_pos = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)[0]
-      if abs(end_effector_pos[0] - pos[0]) < 0.1 and abs(end_effector_pos[1] - pos[1]) < 0.1 and abs(end_effector_pos[2] - pos[2]) < 0.1:
-        break
 
   def _move_to_goal(self):
     goal = [1, 0, 0.25, 0, 0]
     self._move_to_position(goal)
+    time.sleep(0.5)
     print("Went to Goal!")
 
 
