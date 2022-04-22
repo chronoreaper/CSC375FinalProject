@@ -1,18 +1,29 @@
 import gym
 from env import ClawEnv
 from stable_baselines3 import DQN
-from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.monitor import Monitor
+import os
+import matplotlib.pyplot as plt 
 
-env = ClawEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
+env = ClawEnv(renders=False, isDiscrete=True, removeHeightHack=False, maxSteps=20)
 
 model = DQN("MlpPolicy", env, verbose=1, buffer_size=10000)
 model.action_space = env.action_space
 model.learn(total_timesteps=1000, log_interval=4)
 
+rewards = []
+
 obs = env.reset()
-while True:
+for _ in range(10):
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)
+    rewards.append(reward)
     env.render()
     if done:
       obs = env.reset()
+
+plt.plot(rewards)
+plt.title('Rewards')
+plt.xlabel('Episode')
+plt.show()
+plt.savefig('fig.png')
