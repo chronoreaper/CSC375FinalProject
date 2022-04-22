@@ -207,9 +207,7 @@ class ClawEnv(KukaGymEnv):
       else:
         dx = [0, -dv, dv, 0, 0, 0, 0][action]
         dy = [0, 0, 0, -dv, dv, 0, 0][action]
-        dz = 0
-        if action == 0:
-          dz = -dv
+        dz = [-dv, 0, 0, 0, 0, 0, 0][action]
         da = [0, 0, 0, 0, 0, -0.25, 0.25][action]
     else:
       dx = dv * action[0]
@@ -238,47 +236,27 @@ class ClawEnv(KukaGymEnv):
     # Get the current block's position
     block_pos = self._get_object_position()
     
-    # Perform commanded action.
+    
     self._env_step += 1
     # move in each direction sequentially
-    seq_action = [0, 0, 0, 0, 0.3]
-    for i,act in enumerate(action[:4]):
-      seq_action[i] = act
-      print('action', i, seq_action)
-      self._kuka.applyAction(seq_action)
-      for _ in range(self._actionRepeat):
-        p.stepSimulation()
-        if self._renders:
-          time.sleep(self._timeStep)
-        if self._termination():
-          break
-      seq_action = [0, 0, 0, 0, 0.3]
-
-    # If we are close to the bin, attempt grasp.
-    state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
-    end_effector_pos = state[0]
-    if end_effector_pos[2] <= 0.1:
-      finger_angle = 0.3
-      for _ in range(500):
-        grasp_action = [0, 0, 0, 0, finger_angle]
-        self._kuka.applyAction(grasp_action)
-        p.stepSimulation()
-        #if self._renders:
-        #  time.sleep(self._timeStep)
-        finger_angle -= 0.3 / 100.
-        if finger_angle < 0:
-          finger_angle = 0
-      for _ in range(500):
-        grasp_action = [0, 0, 0.001, 0, finger_angle]
-        self._kuka.applyAction(grasp_action)
-        p.stepSimulation()
-        if self._renders:
-          time.sleep(self._timeStep)
-        finger_angle -= 0.3 / 100.
-        if finger_angle < 0:
-          finger_angle = 0
-      self._attempted_grasp = True
+    self._apply_action([action[0], 0, 0, 0, action[4]]) # translate only x
+    self._apply_action([0, action[1], 0, 0, action[4]]) # translate only y
+    self._apply_action([0, 0, 0, action[3], action[4]]) # translate only a
+    
+    # perform grasp motion when dz is set
+    if action[2] != 0:
+      # If we are close to the bin, attempt grasp.
+      state = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)
+      end_effector_pos = state[0]
+      # if end_effector_pos[2] <= 0.1:
+      position = [end_effector_pos[0], end_effector_pos[1], 0.2, 0, action[4]]
+      self._move_to_position(position)
+      self._grasp()
+      print('Going to goal')
       self._move_to_goal()
+      self._release()
+      self._move_to_position([0, 0, 0.2, 0, action[4]])
+
     observation = self._get_observation()
     done = self._termination()
     reward = self._reward(block_pos)
@@ -286,13 +264,74 @@ class ClawEnv(KukaGymEnv):
     debug = {'grasp_success': self._graspSuccess}
     return observation, reward, done, debug
 
-  def _move_to_goal(self):
-    goal = [0.85, 0, 0.2, 0, 0]
-    self._kuka.move_to_pos(goal)
-    for _ in range(500):
+  def _release(self):
+    print('Release start')
+    finger_angle = 0
+    for _ in range(100):
+      grasp_action = [0, 0, 0, 0, finger_angle]
+      self._kuka.applyAction(grasp_action)
       p.stepSimulation()
       if self._renders:
         time.sleep(self._timeStep)
+      finger_angle += 0.3 / 100.
+      if finger_angle > 0.3:
+        finger_angle = 0.3
+
+  def _grasp(self):
+    print('Grasp start')
+    finger_angle = 0.3
+    for _ in range(100):
+      grasp_action = [0, 0, 0, 0, finger_angle]
+      self._kuka.applyAction(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+      finger_angle -= 0.3 / 100.
+      if finger_angle < 0:
+        finger_angle = 0
+    print('Grasp 2 start')
+    for _ in range(100):
+      grasp_action = [0, 0, 0.002, 0, finger_angle]
+      self._kuka.applyAction(grasp_action)
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+      finger_angle -= 0.3 / 100.
+      if finger_angle < 0:
+        finger_angle = 0
+    self._attempted_grasp = True
+
+  def _apply_action(self, action):
+    if any([i != 0 for i in action[:4]]): # only take action when there is some non-zero command
+      print(f'Applying action: {action}')
+      self._kuka.applyAction(action)
+      for _ in range(self._actionRepeat):
+        p.stepSimulation()
+        if self._renders:
+          time.sleep(self._timeStep)
+        # if self._termination():
+        #   break
+
+  def _move_to_position(self, pos):
+    """ Moves the Kuka arm to a position
+    Args: position, (x,y,z,a,r) coordinates, a is the end defector angle, r is the claw angle
+
+    """
+    print(f'Moving to {[round(i, 2) for i in pos]}')
+    pos = self._kuka.clamp_positions(pos)
+    self._kuka.move_to_pos(pos)
+    for _ in range(500):
+      # self._kuka.applyAction(self._calculate_force(pos))
+      p.stepSimulation()
+      if self._renders:
+        time.sleep(self._timeStep)
+      end_effector_pos = p.getLinkState(self._kuka.kukaUid, self._kuka.kukaEndEffectorIndex)[0]
+      if abs(end_effector_pos[0] - pos[0]) < 0.1 and abs(end_effector_pos[1] - pos[1]) < 0.1 and abs(end_effector_pos[2] - pos[2]) < 0.1:
+        break
+
+  def _move_to_goal(self):
+    goal = [1, 0, 0.25, 0, 0]
+    self._move_to_position(goal)
     print("Went to Goal!")
 
 
@@ -337,10 +376,11 @@ class ClawEnv(KukaGymEnv):
       in_goal = []
       for uid in self._objectUids:
         block_pos = self._get_object_position()[uid]
-        in_goal.append(0.8 <= block_pos[0] <= 0.9 and 
+        in_goal.append(0.85 <= block_pos[0] <= 0.9 and 
                       -0.2 <= block_pos[1] <= 0.15 and 
                               block_pos[2] <= -0.1)
-      return any(in_goal) or self._env_step >= self._maxSteps
+      terimination = any(in_goal) or self._env_step >= self._maxSteps
+      return terimination
 
 
   def _get_random_object(self, num_objects, test):
