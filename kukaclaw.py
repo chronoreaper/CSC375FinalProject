@@ -278,7 +278,7 @@ class Kuka:
                                     targetPositions=jointPoses[:7],
                                     targetVelocities=[0] * joints,
                                     forces=[self.maxForce] * joints,
-                                    positionGains=[0.01] * joints,
+                                    positionGains=[0.01] * joints, # speed
                                     velocityGains=[1] * joints)
       else:
         #reset the joint state (ignoring all dynamics, not recommended to use during simulation)
