@@ -42,6 +42,7 @@ def plot_results(log_folder, title='Learning Curve'):
     plt.title(title + " Smoothed")
     plt.savefig('fig_dqn.png')
     plt.show()
+    plt.savefig('fig.png')
 
 
 log_dir = os.path.join(os.getcwd(), "log")
