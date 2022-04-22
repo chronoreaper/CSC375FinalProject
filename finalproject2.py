@@ -1,3 +1,5 @@
+from email import policy
+import itertools
 import gym
 import math
 import random
@@ -5,9 +7,9 @@ import numpy as np
 from absl import app
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 import collections
-from env2 import ClawEnv
+from env import ClawEnv
 from gym import spaces
 import pybullet as p
 import tensorflow as tf
@@ -39,53 +41,51 @@ def normalize(state):
     return state
 
 def main(argv):
+    discount_factor = 1.0
+    alpha = 0.5
 
-    model = ActorCriticPolicy(input_shape=env.observation_space.shape, action_dim=env.action_space.n)
-    agent = ActorCriticAgent(model=model)
-    opt = tf.keras.optimizers.Adam(learning_rate=0.01)
-
-    episodes_reward = []
+    Q = defaultdict(lambda: np.zeros(env.action_space.n))
+    
+    policy = GreedyPolicy(Q, eps. env.action_space.n)
 
     for i in tf.range(max_episodes):
-        done = False
         state = env.reset()
-        episode_reward = 0
-        log_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-        values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-        rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
 
-        with tf.GradientTape() as tape:
-            for j in tf.range(steps):
-                state = normalize(state)
-                action, action_log_probs, value = agent.act(state)
-                log_probs = log_probs.write(j, action_log_probs[0, action])
-                values = values.write(j, tf.squeeze(value))
+        for j in tf.range(steps):
 
-                next_state, reward, done, _ = env.step(action)
-                rewards = rewards.write(j, reward)
+            state = normalize(state)
+            action_prob = policy(state)
 
-                if done:
-                    break
+            # Choose an action based on probability
+            action = np.random.choice(np.arange(len(action_prob)), p = action_prob)
 
-                state = next_state
+            # Run the program
+            next_state, reward, done, _ = env.step(action)
 
-            log_probs = log_probs.stack()
-            values = values.stack()
-            rewards = rewards.stack()
+            # Update the Q state
+            best_next_action = np.argmax(Q[next_state])
+            target_reward = reward + discount_factor * Q[next_state][best_next_action]
+            delta_reward = target_reward - Q[next_state][best_next_action]
+            Q[state][action] += alpha * delta_reward
 
-            returns = agent.compute_expected_return(rewards, gamma)
-            loss = agent.compute_loss(log_probs, returns, values)
+            if done:
+                break
 
-        grads = tape.gradient(loss, model.trainable_variables)
-        opt.apply_gradients(zip(grads, model.trainable_variables))
-
-        episode_reward = tf.math.reduce_sum(rewards)
-
-        episodes_reward.append(float(episode_reward))
-        running_reward = tf.math.reduce_mean(episodes_reward)
+            state = next_state
 
         if i % 10 == 0:
             tf.print('total reward after {} episodes is {}'.format(i, running_reward))
+
+# Reference https://www.geeksforgeeks.org/q-learning-in-python/
+def GreedyPolicy(Q, num_actions):
+    """
+    """
+    def policy(state):
+        probability = np.ones(num_actions, dtype=float) * eps / num_actions
+        best_action = np.argmax(Q[state])
+        probability[best_action] += (1.0 - eps)
+        return probability
+    return policy
 
 if __name__ == '__main__':
   app.run(main)
