@@ -235,7 +235,6 @@ class ClawEnv(KukaGymEnv):
     """
     # Get the current block's position
     block_pos = self._get_object_position()
-    blocks = [block_pos[k] for k in block_pos.keys()]
     
     
     self._env_step += 1
