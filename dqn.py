@@ -3,6 +3,7 @@ from env import ClawEnv
 from absl import app
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 from stable_baselines3 import DQN
 from stable_baselines3.common.monitor import Monitor
 import os
