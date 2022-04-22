@@ -12,7 +12,7 @@ from gym import spaces
 import pybullet as p
 import tensorflow as tf
 
-env = ClawEnv(renders=False, isDiscrete=True, removeHeightHack=False, maxSteps=20)
+env = ClawEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
 
 from typing import Any, List, Sequence, Tuple
 from models import ActorCriticPolicy
