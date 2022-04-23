@@ -6,4 +6,5 @@ env.py is the claw machine environment.
 agents.py and models.py are the actor critic agents and critic respectively.
 kukaclaw.py is the kuka robot arm with a few modifications
 
-Install pip install stable-baselines3
+Dependency Needed to run dqn.py: pip install stable-baselines3
+Simply execute either autocritic.py or dqn.py and the PyBullet simulation will begin. To turn off rendering of the simulation, change renders=False in the file.
