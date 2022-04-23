@@ -1,0 +1,9 @@
+This is the final project for CSCC375
+
+The main files are actorcritic.py and dqn.py
+These both run a machine learning algorithm using the actorcritic policy and the dqn policy respectively.
+env.py is the claw machine environment.
+agents.py and models.py are the actor critic agents and critic respectively.
+kukaclaw.py is the kuka robot arm with a few modifications
+
+Install pip install stable-baselines3
