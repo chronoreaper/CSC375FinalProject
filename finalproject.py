@@ -12,7 +12,7 @@ from gym import spaces
 import pybullet as p
 import tensorflow as tf
 
-env = ClawEnv(renders=True, isDiscrete=True, removeHeightHack=False, maxSteps=20)
+env = ClawEnv(renders=False, isDiscrete=True, removeHeightHack=False, maxSteps=20)
 
 from typing import Any, List, Sequence, Tuple
 from models import ActorCriticPolicy
@@ -34,6 +34,9 @@ np.random.seed(seed)
 eps = np.finfo(np.float32).eps.item()
 
 def plot_rewards(running_rewards):
+    plt.title('Rewards')
+    plt.xlabel('Episode')
+    plt.ylabel('Average Rewards per episode')
     plt.plot(running_rewards)
     plt.draw()
     plt.pause(0.01)
